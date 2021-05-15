@@ -13,8 +13,19 @@ app.use(cors());
 app.use(express.json());
 
 const videoRouter = require("./routes/videos.router");
+const userRouter = require("./routes/user.router");
+const playlistRouter = require("./routes/playlist.router");
+const { errorHandler } = require("./middlewares/error-handler.middleware");
+const {
+  routeNotFound,
+} = require("./middlewares/routenotfound-handler.middleware");
 
 app.use("/videos", videoRouter);
+app.use("/users", userRouter);
+app.use("/playlists", playlistRouter);
+
+app.use(routeNotFound);
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log("server started successfully at port: ", port);

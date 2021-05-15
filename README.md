@@ -5,5 +5,5 @@ LikedVideo
 History
 WatchLater
 Playlist
-UserVideos
+User
 
