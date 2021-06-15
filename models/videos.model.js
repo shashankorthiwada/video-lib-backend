@@ -14,17 +14,13 @@ const VideoSchema = new Schema(
       unique: "Already a video exists with this title",
     },
     createdby: String,
-    image: String,
     subscribers: Number,
-    date: Date,
+    date: String,
     description: {
       type: String,
     },
     views: {
       type: Number,
-    },
-    comments: {
-      type: Array,
     },
   },
   {
