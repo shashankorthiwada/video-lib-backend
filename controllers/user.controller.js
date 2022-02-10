@@ -1,5 +1,10 @@
+require("dotenv").config();
 const { User } = require("../models/user.model");
 const { extend } = require("lodash");
+const { hash, genSalt, compare } = require("bcrypt");
+const { sign, verify } = require("jsonwebtoken");
+
+const secret = process.env.secret;
 
 const getUsers = async (req, res) => {
   try {
@@ -8,19 +13,28 @@ const getUsers = async (req, res) => {
       user.password = undefined;
       return user;
     });
-    res.status(200).json({ success: true, data: users });
+    res.status(200).json({ success: true, users });
   } catch (error) {
-    res.status(500).json({ success: false, errorMessage: error.message });
+    res.status(500).json({
+      success: false,
+      message: "error fetching user Details",
+      errorMessage: error.message,
+    });
   }
 };
 
 const findUser = async (req, res) => {
   const { username, password } = req.body;
-  const usernameExists = await User.exists({ username });
-  if (usernameExists) {
-    let user = await User.findOne({ username, password });
-    if (user) {
-      res.json({ success: true, user: { _id: user._id, name: user.username } });
+  const user = await User.findOne({ username });
+  if (user) {
+    const validPassword = await compare(password, user.password);
+    if (validPassword) {
+      const token = sign({ _id: user._id }, secret, { expiresIn: "24h" });
+      res.json({
+        success: true,
+        user: { _id: user._id, name: user.username },
+        token,
+      });
     } else {
       res.status(401).json({
         success: false,
@@ -45,7 +59,7 @@ const registerUser = async (req, res) => {
     if (userNameExists) {
       res.status(409).json({
         success: false,
-        message: "User With this User name already Exists",
+        message: "Username is taken.",
       });
       return userNameExists;
     }
@@ -57,9 +71,12 @@ const registerUser = async (req, res) => {
       return emailExists;
     }
     let newUser = new User(userData);
+    const salt = await genSalt(10);
+    newUser.password = await hash(newUser.password, salt);
     newUser = await newUser.save();
+    const token = sign({ _id: newUser._id }, secret, { expiresIn: "24h" });
     const user = { _id: newUser._id, name: newUser.username };
-    res.status(200).json({ success: true, user });
+    res.status(201).json({ success: true, user, token });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -69,18 +86,43 @@ const registerUser = async (req, res) => {
   }
 };
 
-const findUserById = async (req, res, next, userId) => {
+const verifyUser = (req, userId) => {
+  const token = req?.headers?.authorization;
   try {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw Error("unable to fetch the user details");
+    if (token) {
+      const decodedValue = verify(token, secret);
+      if (userId === decodedValue._id) {
+        return true;
+      }
     }
-    req.user = user;
-    next();
   } catch (error) {
-    res
-      .status(400)
-      .json({ success: false, message: "Unable to retrive the user details" });
+    console.log("Error verifying JWT token");
+  }
+  return false;
+};
+
+const findUserById = async (req, res, next, userId) => {
+  if (verifyUser(req, userId)) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw Error("unable to fetch the user details");
+      }
+      req.user = user;
+      next();
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: "Unable to retrive the user details",
+      });
+    }
+  } else {
+    res.status(401).json({
+      success: false,
+      data: null,
+      message: "UnAuthorized user or user token expired..",
+    });
+    throw Error("UnAuthorized user or user token expired..");
   }
 };
 

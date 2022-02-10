@@ -48,7 +48,7 @@ const getUserPlaylist = async (req, res) => {
   try {
     let { playlist } = req;
     let playlists = await getActivePlaylists(playlist);
-    res.status(200).json({ success: true, data: playlists });
+    res.status(200).json({ success: true, playlists });
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -75,15 +75,18 @@ const createUserPlaylist = async (req, res) => {
 const updatePlaylistName = async (req, res) => {
   try {
     const { _id, playlistname } = req.body;
+
     let { playlist } = req;
+
     for (let list of playlist.playlists) {
-      if (list._id === _id) {
+      if (list._id == _id) {
         list.playlistname = playlistname;
         break;
       }
     }
     let updatedPlaylist = await playlist.save();
     updatedPlaylist = await getActivePlaylists(updatedPlaylist);
+
     res.status(200).json({ success: true, playlist: updatedPlaylist });
   } catch (error) {
     res.status(500).json({
@@ -98,7 +101,7 @@ const getVideosInPlaylist = async (playlist, listId) => {
   let existingPlaylist = playlist.playlists.find(
     (list) => list._id == listId && list.active
   );
-  console.log("existingPlaylist: ", existingPlaylist);
+
   if (!existingPlaylist) {
     throw Error("No Playlist Found");
   }
@@ -107,15 +110,14 @@ const getVideosInPlaylist = async (playlist, listId) => {
 
 const getActiveVideos = async (videoList) => {
   videoList = videoList.filter((video) => video.active);
-  console.log("videoList: ", videoList);
+
   return videoList.map((video) => video._id);
 };
 
 const getPlaylistVideos = async (req, res) => {
   const { playlistId } = req.params;
   const { playlist } = req;
-  console.log("playlistId", playlistId);
-  console.log("playlist: ", playlist);
+
   let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
   playlistVideos = await getActiveVideos(playlistVideos);
   res.json({ success: true, playlist: playlistVideos });
@@ -125,9 +127,12 @@ const updatePlaylistVideo = async (req, res) => {
   let { playlist } = req;
   const { playlistId } = req.params;
   const { _id } = req.body;
-  let playlistVideos = getVideosInPlaylist(playlist, playlistId);
-  playlistVideos = playlistVideos.map((video) => video._id);
-  const videoExists = playlistVideos.some((video) => video == _id);
+  let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
+
+  const videoExists = playlistVideos.some(
+    (playlistVideo) => playlistVideo._id == _id
+  );
+
   for (let list of playlist.playlists) {
     if (list._id == playlistId) {
       if (videoExists) {
@@ -144,8 +149,8 @@ const updatePlaylistVideo = async (req, res) => {
     }
   }
   let updatedPlaylist = await playlist.save();
-  playlistVideos = getVideosInPlaylist(updatedPlaylist, playlistId);
-  playlistVideos = getActiveVideos(playlistVideos);
+  playlistVideos = await getVideosInPlaylist(updatedPlaylist, playlistId);
+  playlistVideos = await getActiveVideos(playlistVideos);
   res.json({ success: true, playlist: playlistVideos });
 };
 
