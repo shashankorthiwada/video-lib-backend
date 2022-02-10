@@ -122,7 +122,6 @@ const findUserById = async (req, res, next, userId) => {
       data: null,
       message: "UnAuthorized user or user token expired..",
     });
-    throw Error("UnAuthorized user or user token expired..");
   }
 };
 
