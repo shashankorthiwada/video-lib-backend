@@ -117,41 +117,56 @@ const getActiveVideos = async (videoList) => {
 const getPlaylistVideos = async (req, res) => {
   const { playlistId } = req.params;
   const { playlist } = req;
-
-  let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
-  playlistVideos = await getActiveVideos(playlistVideos);
-  res.json({ success: true, playlist: playlistVideos });
+  try {
+    let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
+    playlistVideos = await getActiveVideos(playlistVideos);
+    res.json({ success: true, playlist: playlistVideos });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error Fetching playlist videos",
+      errorMessage: error.message,
+    });
+  }
 };
 
 const updatePlaylistVideo = async (req, res) => {
   let { playlist } = req;
   const { playlistId } = req.params;
   const { _id } = req.body;
-  let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
+  try {
+    let playlistVideos = await getVideosInPlaylist(playlist, playlistId);
 
-  const videoExists = playlistVideos.some(
-    (playlistVideo) => playlistVideo._id == _id
-  );
+    const videoExists = playlistVideos.some(
+      (playlistVideo) => playlistVideo._id == _id
+    );
 
-  for (let list of playlist.playlists) {
-    if (list._id == playlistId) {
-      if (videoExists) {
-        for (let video of list.videos) {
-          if (video._id == _id) {
-            video.active = !video.active;
-            break;
+    for (let list of playlist.playlists) {
+      if (list._id == playlistId) {
+        if (videoExists) {
+          for (let video of list.videos) {
+            if (video._id == _id) {
+              video.active = !video.active;
+              break;
+            }
           }
+        } else {
+          list.videos.push({ _id, active: true });
+          break;
         }
-      } else {
-        list.videos.push({ _id, active: true });
-        break;
       }
     }
+    let updatedPlaylist = await playlist.save();
+    playlistVideos = await getVideosInPlaylist(updatedPlaylist, playlistId);
+    playlistVideos = await getActiveVideos(playlistVideos);
+    res.status(200).json({ success: true, playlist: playlistVideos });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error Updating Playlist",
+      errorMessage: error.message,
+    });
   }
-  let updatedPlaylist = await playlist.save();
-  playlistVideos = await getVideosInPlaylist(updatedPlaylist, playlistId);
-  playlistVideos = await getActiveVideos(playlistVideos);
-  res.json({ success: true, playlist: playlistVideos });
 };
 
 const removePlaylist = async (req, res) => {
