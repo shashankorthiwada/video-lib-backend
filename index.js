@@ -20,7 +20,7 @@ app.use(express.json());
 const videoRouter = require("./routes/videos.router");
 const userRouter = require("./routes/user.router");
 const playlistRouter = require("./routes/playlist.router");
-const authRouter = require("./routes/auth.router");
+// const authRouter = require("./routes/auth.router");
 const { errorHandler } = require("./middlewares/error-handler.middleware");
 const {
   routeNotFound,
