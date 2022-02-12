@@ -2,11 +2,11 @@ require("dotenv").config();
 const port = process.env.PORT || 3002;
 const express = require("express");
 const cors = require("cors");
-const corsOptions = {
-  origin: "*",
-  credentials: true,
-  optionSuccessStatus: 200,
-};
+// const corsOptions = {
+//   origin: "*",
+//   credentials: true,
+//   optionSuccessStatus: 200,
+// };
 const bodyParser = require("body-parser");
 
 const { initializeDbConnection } = require("./db/db.connect");
@@ -14,7 +14,7 @@ const { initializeDbConnection } = require("./db/db.connect");
 initializeDbConnection();
 
 const app = express();
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
 const videoRouter = require("./routes/videos.router");
@@ -29,7 +29,7 @@ const {
 app.use("/videos", videoRouter);
 app.use("/users", userRouter);
 app.use("/playlists", playlistRouter);
-app.use("/auth", authRouter);
+// app.use("/auth", authRouter);
 
 app.use(routeNotFound);
 app.use(errorHandler);
